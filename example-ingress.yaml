@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-shield
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 80
+  selector:
+    env: shield
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 80
+  selector:
+    env: default
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: shield
+  labels:
+    env: shield
+spec:
+  containers:
+  - image: localhost:5001/hello-shield:1.0
+    name: shield-ctr
+    ports:
+    - containerPort: 80
+    imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default
+  labels:
+    env: default
+spec:
+  containers:
+  - image: localhost:5001/hello-world:1.0
+    name: default-ctr
+    ports:
+    - containerPort: 80
+    imagePullPolicy: Always
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcu-all
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: hello.world.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-default
+            port:
+              number: 8080
+  - host: hello.shield.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-shield
+            port:
+              number: 8080
+  - host: hello.com
+    http:
+      paths:
+      - path: /shield
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-shield
+            port:
+              number: 8080
+      - path: /default
+        pathType: Prefix
+        backend:
+          service:
+            name: svc-default
+            port:
+              number: 8080
